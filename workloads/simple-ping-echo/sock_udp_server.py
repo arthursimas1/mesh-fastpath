@@ -21,8 +21,8 @@ def server_loop():
   signal.signal(signal.SIGINT, close_handler)
 
   while True:
-    data, (client_addr, client_port) = sock.recvfrom(1024)
-    print(f'got {data} from {(client_addr, client_port)}')
-    sock.sendto(data + b' [from python]', (client_addr, client_port))
+    data_recv, (client_addr, client_port) = sock.recvfrom(1024)
+    print(f'got {data_recv} from {(client_addr, client_port)}')
+    sock.sendto(data_recv + b'[reply;python]', (client_addr, client_port))
 
 server_loop()

@@ -32,17 +32,18 @@ sock.connect((HOST, PORT))
 while should_exit == 0:
   start = time.time_ns()
   try:
-    sock.sendall(b'ping')
-    data = sock.recv(1024)
-    if not data: break
+    data = f'ping-{start}'.encode()
+    sock.sendall(data)
+    data_recv = sock.recv(1024)
+    if not data_recv: break
   except Exception as e:
     print(e)
     break
   end = time.time_ns()
   diff = end - start
+  #print(data)
+  print(f'{len(times)},{diff}')
   times.append(diff)
-  print(data)
-  print(diff, len(times))
   time.sleep(.1)
 
 print('\nclosing socket')

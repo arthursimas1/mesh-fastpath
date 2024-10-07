@@ -20,10 +20,10 @@ async def handle_client(conn, addr):
   loop = asyncio.get_event_loop()
 
   while True:
-    data = await loop.sock_recv(conn, 1024)
-    if not data: break
-    print(f'got {data} from {addr}')
-    await loop.sock_sendall(conn, data + b' [from python]')
+    data_recv = await loop.sock_recv(conn, 1024)
+    if not data_recv: break
+    print(f'got {data_recv} from {addr}')
+    await loop.sock_sendall(conn, data_recv + b'[reply;python]')
 
   conn.close()
   connections.remove(conn)

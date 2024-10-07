@@ -31,17 +31,19 @@ sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 while should_exit == 0:
   start = time.time_ns()
   try:
-    sock.sendto(b'ping', (HOST, PORT))
-    data, (client_addr, client_port) = sock.recvfrom(1024)
-    if not data: break
+    data = f'ping-{start}'.encode()
+    sock.sendto(data, (HOST, PORT))
+    sock.sendall()
+    data_recv, (client_addr, client_port) = sock.recvfrom(1024)
+    if not data_recv: break
   except Exception as e:
     print(e)
     break
   end = time.time_ns()
   diff = end - start
+  #print(data)
+  print(f'{len(times)},{diff}')
   times.append(diff)
-  print(data)
-  print(diff, len(times))
   time.sleep(.1)
 
 print('\nclosing socket')
