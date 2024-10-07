@@ -34,7 +34,7 @@ spec:
     spec:
       containers:
       - name: echo
-        image: ghcr.io/arthursimas1/python-ping-echo:0.1.0
+        image: ghcr.io/arthursimas1/python-ping-echo:0.1.1
         imagePullPolicy: Always
         command:
         - /sock_tcp_server.py
@@ -88,7 +88,7 @@ spec:
     spec:
       containers:
       - name: ping
-        image: ghcr.io/arthursimas1/python-ping-echo:0.1.0
+        image: ghcr.io/arthursimas1/python-ping-echo:0.1.1
         imagePullPolicy: Always
         command:
         - /sock_tcp_client.py
@@ -97,3 +97,11 @@ spec:
         env:
         - name: PYTHONUNBUFFERED
           value: "1"
+        - name: INFLUX_URL
+          value: "<fill>"
+        - name: INFLUX_TOKEN
+          value: "<fill>"
+        - name: INFLUX_ORG
+          value: "main"
+        - name: INFLUX_BUCKET
+          value: "eztunnel-benchmark"

@@ -5,6 +5,8 @@ LABEL org.opencontainers.image.source https://github.com/arthursimas1/k8s-ebpf-o
 
 FROM base AS runtime
 
+RUN pip install influxdb-client
+
 COPY sock_tcp_client.py /
 COPY sock_tcp_server.py /
 COPY sock_udp_client.py /
