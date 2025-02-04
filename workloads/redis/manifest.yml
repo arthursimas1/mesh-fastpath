@@ -1,0 +1,101 @@
+---
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: workload-redis
+  labels:
+    name: workload-redis
+    #istio-injection: enabled
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: redis
+  namespace: workload-redis
+  labels:
+    app: redis
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: redis
+
+  template:
+    metadata:
+      labels:
+        app: redis
+
+    spec:
+      containers:
+      - name: redis
+        image: redis:7.4.1
+        ports:
+        - containerPort: 6379
+
+---
+
+apiVersion: v1
+kind: Service
+
+metadata:
+  name: redis
+  namespace: workload-redis
+
+spec:
+  type: ClusterIP
+  selector:
+    app: redis
+  ports:
+  - protocol: TCP
+    appProtocol: tcp
+    port: 6379
+    targetPort: 6379
+    appProtocol: tcp
+
+---
+
+apiVersion: batch/v1
+kind: Job
+
+metadata:
+  name: memtier
+  namespace: workload-redis
+  labels:
+    app: memtier
+
+spec:
+  template:
+    metadata:
+      labels:
+        app: memtier
+
+    spec:
+      restartPolicy: Never
+
+      initContainers:
+      - name: wait-for-redis
+        image: busybox:1.37.0
+        command: ['sh', '-c', 'until nc -z redis 6379; do echo waiting for redis; sleep 2; done']
+
+      containers:
+      - name: memtier
+        image: redislabs/memtier_benchmark:2.1.2
+        command:
+        - /bin/sh
+        - -c
+        - |
+          memtier_benchmark --server=redis --port=6379 --run-count=5 --clients=50 --threads=2 --requests=10000 --hdr-file-prefix=/mnt/logs/memtier/
+        volumeMounts:
+        - name: logs
+          mountPath: /mnt/logs/memtier
+
+      volumes:
+      - name: logs
+        hostPath:
+          path: /mnt/logs/memtier
