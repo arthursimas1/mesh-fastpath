@@ -14,7 +14,7 @@ use clap::Parser;
 use log::{info, warn, debug};
 use tokio::signal;
 
-use mesh_fastpath_common::SockPairTuple;
+use mesh_fastpath_common::SockId;
 
 use std::{
     fs::File,
@@ -75,7 +75,7 @@ async fn main() -> Result<(), anyhow::Error> {
     }
 
     if LOAD_SKMSG {
-        let sockets: SockHash<_, [u8; mem::size_of::<SockPairTuple>()]> = bpf.map("SOCKETS").unwrap().try_into()?;
+        let sockets: SockHash<_, [u8; mem::size_of::<SockId>()]> = bpf.map("SOCKETS").unwrap().try_into()?;
         let sockets_fd = sockets.fd().try_clone()?;
 
         let program_name = "redirect_between_sockets";
