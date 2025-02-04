@@ -1,0 +1,3 @@
+micromamba env create -f environment.yml -y
+micromamba activate hackathon5G
+jupyter lab

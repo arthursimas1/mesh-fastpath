@@ -1,0 +1,86 @@
+\paragraph{Optimization Setup.} To deploy the proposed eBPF-based optimization strategy, precompiled release binaries were provided to simplify installation and execution. The steps below outline the setup process:
+
+\begin{enumerate}
+    \item \textbf{Download the release binaries}:\\
+    Download the appropriate version for the current system architecture. Check the respective GitHub Releases page for the available versions and the most recent release.
+
+    % inspired by: https://github.com/docker/compose/releases/tag/v2.27.0
+    \begin{verbatim}
+    REPO=arthursimas1/eztunnel
+    VERSION=v0.1.1
+
+    curl -L "https://github.com/${REPO}"\
+    "/releases/download/${VERSION}"\
+    "/eztunnel-$(uname -s)-$(uname -m)" -o eztunnel
+    \end{verbatim}
+
+    The binary can be downloaded by \textit{cloud-init} during the setup or pushed into the target instance as follows:
+
+    \begin{verbatim}
+    lxc file push <source path> <instance id>/<destination path>
+    \end{verbatim}
+
+    \item \textbf{Install}:\\
+    Set execute permission to file and move the binary to the system-wide available executables directory:
+
+    \begin{verbatim}
+    sudo chmod +x eztunnel
+    sudo mv eztunnel /usr/local/bin/
+    \end{verbatim}
+
+    \item \textbf{Run the optimization binary}:\\
+    After installation, the optimization program can be started with:
+    \begin{verbatim}
+    sudo eztunnel
+    \end{verbatim}
+
+    % The log level can be configured using the parameter \texttt{RUST\_LOG}:
+    % \begin{verbatim}
+    % sudo RUST_LOG=info eztunnel
+    % \end{verbatim}
+\end{enumerate}
+
+\paragraph{Workload Execution.} To deploy workloads in the Kubernetes cluster, preconfigured Kubernetes manifests were utilized. These manifests contain the deployment specification, service, and configuration details required for each workload. The following procedure was used for each workload:
+
+\begin{enumerate}
+    \item \textbf{Get workload Kubernetes manifest}:\\
+    The appropriate manifest for the workload was fetched from the repository using \texttt{git}:
+    \begin{verbatim}
+    REPO=arthursimas1/eztunnel
+    VERSION=v0.1.1
+
+    git clone --branch $VERSION "https://github.com/${REPO}.git"
+    \end{verbatim}
+
+    \item \textbf{Deploy workload}:\\
+    The workload was deployed to the Kubernetes cluster using \texttt{kubectl}:
+
+    \begin{verbatim}
+    kubectl apply -f "workloads/${WORKLOAD}/manifest.yml"
+    \end{verbatim}
+
+    \textbf{Note}: The namespace label \verb!istio-injection: enabled! should be used in the  \texttt{istio-sidecar} service mesh setup. Uncomment the respective line before applying the manifest.
+
+    \item \textbf{Collect metrics}:\\
+    Performance metrics measured by workloads are extracted from the deployment logs for later analysis:
+
+    \begin{itemize}
+        \item \textbf{\textit{file-transfer}}:\\
+        \verb!kubectl logs -n workload-${WORKLOAD} job.batch/${WORKLOAD_LOG}!
+
+        \item \textbf{\textit{ping-echo}}:\\
+        \verb!cat /mnt/logs/${WORKLOAD_LOG}/log_<timestamp>.csv!
+
+        \item \textbf{\textit{redis}}:\\
+        \verb!kubectl logs -n workload-${WORKLOAD} job.batch/${WORKLOAD_LOG}!\\
+        \verb!cat /mnt/logs/${WORKLOAD_LOG}/_FULL_RUN_<iteration>.txt!
+    \end{itemize}
+
+    \item \textbf{Terminate workload}:\\
+    Then, after completing the evaluation for a workload, its resources were deleted from the cluster to ensure a clean slate for subsequent tests:
+
+    \begin{verbatim}
+    kubectl delete -f "workloads/${WORKLOAD}/manifest.yml"
+    \end{verbatim}
+\end{enumerate}
+
