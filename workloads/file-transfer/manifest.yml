@@ -1,0 +1,93 @@
+---
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: workload-file-transfer
+  labels:
+    name: workload-file-transfer
+    #istio-injection: enabled
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: server
+  namespace: workload-file-transfer
+  labels:
+    app: server
+
+spec:
+  replicas: 1
+
+  selector:
+    matchLabels:
+      app: server
+
+  template:
+    metadata:
+      labels:
+        app: server
+
+    spec:
+      containers:
+      - name: server
+        image: instrumentisto/nmap:7.95
+        command:
+        - /bin/sh
+        - -c
+        - |
+          while true; do dd if=/dev/urandom bs=1M count=1000 | ncat -l -p 8080 --send-only; done
+        ports:
+        - containerPort: 8080
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: server
+  namespace: workload-file-transfer
+spec:
+  type: ClusterIP
+  selector:
+    app: server
+  ports:
+  - protocol: TCP
+    appProtocol: tcp
+    port: 8080
+    targetPort: 8080
+
+---
+
+apiVersion: batch/v1
+kind: Job
+
+metadata:
+  name: client
+  namespace: workload-file-transfer
+  labels:
+    app: client
+spec:
+  template:
+    metadata:
+      labels:
+        app: client
+
+    spec:
+      restartPolicy: Never
+
+      initContainers:
+      - name: wait-for-echo
+        image: busybox:1.37.0
+        command: ['sh', '-c', 'until nc -z server 8080; do echo waiting for server; sleep 2; done; sleep 2']
+
+      containers:
+      - name: client
+        image: instrumentisto/nmap:7.95
+        command:
+        - /bin/sh
+        - -c
+        - |
+          for i in $(seq 1 5); do sleep 2s; ncat -v --recv-only server 8080 > /dev/null; done
