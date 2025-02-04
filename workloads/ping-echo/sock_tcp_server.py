@@ -5,16 +5,19 @@ import socket
 import signal
 import asyncio
 
-assert len(sys.argv) == 2, 'wrong argument count. expected `python3 sock_server.py 127.0.0.1:8080`'
+import argparse
 
-#[HOST, PORT] = '192.168.0.112:6300'.split(':')
-[HOST, PORT] = sys.argv[1].split(':')
-PORT = int(PORT)
+parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
+parser.add_argument('host', type=str, nargs='?', default='localhost', help='the host/IP address to bind the server to')
+parser.add_argument('port', type=int, nargs='?', default=8080, help='the port number to bind the server to')
+
+args = parser.parse_args()
 
 connections = set()
 
 async def handle_client(conn, addr):
-  print(f'connection accepted from {addr}')
+  print(f'accepted {addr}')
   connections.add(conn)
 
   loop = asyncio.get_event_loop()
@@ -22,31 +25,46 @@ async def handle_client(conn, addr):
   while True:
     data_recv = await loop.sock_recv(conn, 1024)
     if not data_recv: break
-    print(f'got {data_recv} from {addr}')
-    await loop.sock_sendall(conn, data_recv + b'[reply;python]')
+    #print(f'got {data_recv} from {addr}')
+    await loop.sock_sendall(conn, data_recv)# + b'[reply;python]')
 
   conn.close()
   connections.remove(conn)
-  print(f'connection with {addr} closed')
+  print(f'closed {addr}')
 
 async def server_loop():
   # socket.SOCK_DGRAM
+  global sock
   sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM | socket.SOCK_NONBLOCK)
-  sock.bind((HOST, PORT))
+  sock.bind((args.host, args.port))
   sock.listen(1024)
 
   loop = asyncio.get_event_loop()
 
-  def close_handler(signum, frame):
-    for conn in connections:
-      conn.close()
-    sys.exit(0)
-
-  signal.signal(signal.SIGINT, close_handler)
-
-  print(f'listening on {(HOST, PORT)}')
+  print(f'listening on {(args.host, args.port)}')
   while True:
     conn, addr = await loop.sock_accept(sock)
     loop.create_task(handle_client(conn, addr))
+
+should_exit = 0
+def signal_handler(signum, frame):
+  if signum != signal.SIGINT:
+    return
+  global should_exit
+  global sock
+  should_exit += 1
+
+  try:
+    sock.close()
+  except NameError:
+    pass
+
+  if should_exit >= 2:
+    for conn in connections:
+      print('closing conn')
+      conn.close()
+    sys.exit(0)
+
+signal.signal(signal.SIGINT, signal_handler)
 
 asyncio.run(server_loop())

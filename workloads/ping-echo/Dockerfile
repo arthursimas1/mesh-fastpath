@@ -1,7 +1,7 @@
 ARG ARCH=
 FROM ${ARCH}python:3.12.3-alpine3.19 AS base
 
-LABEL org.opencontainers.image.source https://github.com/arthursimas1/k8s-ebpf-offloading
+LABEL org.opencontainers.image.source https://github.com/arthursimas1/mesh-fastpath
 
 FROM base AS runtime
 
