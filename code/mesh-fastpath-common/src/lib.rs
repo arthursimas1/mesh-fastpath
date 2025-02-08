@@ -13,7 +13,7 @@ pub struct SockPairTuple {
 #[repr(C, packed)]
 #[derive(Copy, Clone)]
 pub struct SockId {
-    pub direction: u8,
+    pub side: u8,
     pub ip: [u32; 4usize],
     pub port: u16,
 }
