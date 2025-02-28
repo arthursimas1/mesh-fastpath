@@ -7,7 +7,7 @@
 This repository houses the scripts, code and guidance needed to replicate the experiments presented in our papers.
 
 - [eSeMeshA Code](./code): Source code for building and running eBPF programs and userspace applications
-- [Analysis & Graphs](./graphs): Jupyter Notebooks for data analysis and visualization
+- [Analysis & Graphs](./analysis): Jupyter Notebooks for data analysis and visualization
 - [Workloads & Logs](./workloads): Various workloads and their respective logs generated during the experiments
 - [Environment Setup](./setup): Scripts and instructions for setting up the environment for running the experiments
 
