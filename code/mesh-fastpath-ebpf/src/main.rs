@@ -28,14 +28,9 @@ use aya_ebpf::{
 };
 use aya_log_ebpf::{info, warn, error};
 
-use mesh_fastpath_common::{SockPairTuple, SockId};
+use mesh_fastpath_common::{SockPairTuple, IpAddrKind, SockSide, SockId};
 mod sock_hash;
 mod sock_map;
-
-const SOCKET_SIDE_CLIENT: u8 = 0;
-const SOCKET_SIDE_SERVER: u8 = 1;
-
-const AF_INET: u8 = 2;
 
 #[map]
 static mut SOCKETS_REVERSED: HashMap<SockPairTuple, SockId> = HashMap::with_max_entries(65_536, BPF_F_NO_PREALLOC);
@@ -68,14 +63,14 @@ fn try_intercept_active_sockets<'a>(ctx: &SockOpsContext) -> Result<u32, &'a str
 
     let family = ops.family as u8;
 
-    let local_ip = if family == AF_INET {
+    let local_ip = if family == IpAddrKind::V4 as u8 {
         [0, 0, 0xffff, ops.local_ip4.swap_bytes()]
     } else {
         ops.local_ip6
     };
     let local_port = ops.local_port as u16;
 
-    let remote_ip = if family == AF_INET {
+    let remote_ip = if family == IpAddrKind::V4 as u8 {
         [0, 0, 0xffff, ops.remote_ip4.swap_bytes()]
     } else {
         ops.remote_ip6
@@ -98,14 +93,14 @@ fn try_intercept_active_sockets<'a>(ctx: &SockOpsContext) -> Result<u32, &'a str
     let mut sock_id = if ops.op == BPF_SOCK_OPS_ACTIVE_ESTABLISHED_CB {
         // the current socket is from the CLIENT side. getting LOCAL ip and port
         SockId {
-            side: SOCKET_SIDE_CLIENT,
+            side: SockSide::Client,
             ip: local_ip,
             port: local_port,
         }
     } else {
         // the current socket is from the SERVER side. getting REMOTE ip and port
         SockId {
-            side: SOCKET_SIDE_SERVER,
+            side: SockSide::Server,
             ip: remote_ip,
             port: remote_port,
         }
@@ -120,7 +115,7 @@ fn try_intercept_active_sockets<'a>(ctx: &SockOpsContext) -> Result<u32, &'a str
     let result = SOCKETS.update(sock_id, ctx.ops, BPF_ANY as u64);
 
     // reverse the direction and save the socket
-    sock_id.side = if sock_id.side == SOCKET_SIDE_CLIENT { SOCKET_SIDE_SERVER } else { SOCKET_SIDE_CLIENT };
+    sock_id.side = if sock_id.side == SockSide::Client { SockSide::Server } else { SockSide::Client };
     unsafe { SOCKETS_REVERSED.insert(&sock_pair_tuple, &sock_id, 0) };
 
     if let Err(e) = result {
@@ -165,14 +160,14 @@ fn try_redirect_between_sockets<'a>(ctx: &SkMsgContext) -> Result<u32, &'a str> 
 
     let family = msg.family as u8;
 
-    let local_ip = if family == AF_INET {
+    let local_ip = if family == IpAddrKind::V4 as u8 {
         [0, 0, 0xffff, msg.local_ip4.swap_bytes()]
     } else {
         msg.local_ip6
     };
     let local_port = msg.local_port as u16;
 
-    let remote_ip = if family == AF_INET {
+    let remote_ip = if family == IpAddrKind::V4 as u8 {
         [0, 0, 0xffff, msg.remote_ip4.swap_bytes()]
     } else {
         msg.remote_ip6
